@@ -10,7 +10,7 @@ metricServer.get('/metrics', (req, res) => {
 })
 metricServer.get('/', (req, res) => {
     console.log('metrics homepage')
-    res.send("<a href='/metrics'>/metrics</a>")
+    res.send("<h1>Metrics</h1> <br/><a href='/metrics'>/metrics</a>")
   })
 
 metricServer.listen(9991, () =>
