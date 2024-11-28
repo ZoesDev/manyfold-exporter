@@ -28,18 +28,18 @@ jobs:
       # Step 3: Build the Docker image
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/my-app:${{ github.sha }} .
+          docker build -t ghcr.io/zoesdev/manyfold-metrics:${{ github.sha }} .
           
       # Step 4: Push the Docker image to GitHub Container Registry
       - name: Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository }}/my-app:${{ github.sha }}
+          docker push ghcr.io/zoesdev/manyfold-metrics:${{ github.sha }}
 
       # Optional: Step 5: Tag the Docker image with 'latest' tag
       - name: Tag Docker image with 'latest'
         run: |
-          docker tag ghcr.io/${{ github.repository }}/my-app:${{ github.sha }} ghcr.io/${{ github.repository }}/my-app:latest
+          docker tag ghcr.io/zoesdev/manyfold-metrics:${{ github.sha }} ghcr.io/zoesdev/manyfold-metrics:latest
 
       - name: Push 'latest' tag to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository }}/my-app:latest
+          docker push ghcr.io/zoesdev/manyfold-metrics:latest
