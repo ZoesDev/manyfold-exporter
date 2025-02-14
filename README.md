@@ -1,4 +1,4 @@
-# manyfold-metrics
+# manyfold-exporter
 Prometheus exporter for manyfold metrics
 
 ## Collected Metrics
