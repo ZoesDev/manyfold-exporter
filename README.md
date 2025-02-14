@@ -26,7 +26,7 @@ This project provides a metrics server that exposes various metrics related to t
 First, clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/ZoesDev/manyfold-metrics.git
+git clone https://github.com/ZoesDev/manyfold-exporter.git
 cd manyfold-metrics
 ```
 
