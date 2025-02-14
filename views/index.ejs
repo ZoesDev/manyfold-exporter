@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manyfold Metrics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #555;
+        }
+        .version {
+            font-size: 1.2em;
+            color: #888;
+        }
+        a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Manyfold Metrics</h1>
+    <p>Version: <span class="version"><%= version %></span></p>
+    <p>Click below to view Prometheus metrics:</p>
+    <p><a href="/metrics">Go to Metrics Page</a></p>
+</body>
+</html>
