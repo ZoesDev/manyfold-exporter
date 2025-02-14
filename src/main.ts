@@ -17,42 +17,33 @@ const modelCount = new promClient.Gauge({ name: 'manyfold_model_count', help: 'T
 const fileCount = new promClient.Gauge({ name: 'manyfold_file_count', help: 'Total number of files' });
 const tagCount = new promClient.Gauge({ name: 'manyfold_tag_count', help: 'Total number of tags' });
 const creatorCount = new promClient.Gauge({ name: 'manyfold_creator_count', help: 'Total number of creators' });
-const modelDownloads = new promClient.Gauge({ name: 'manyfold_model_downloads', help: 'Total downloads per model', labelNames: ['model_id'] });
-const diskUsage = new promClient.Gauge({ name: 'manyfold_library_disk_usage', help: 'Disk space used per library', labelNames: ['library_id'] });
 
 async function collectMetrics() {
     try {
         // Query user count
-        const users = await query('SELECT COUNT(*) FROM users');
-        userCount.set(users.rows[0].count);
+        const users = await query('SELECT COUNT(*)::int AS count FROM users');
+        userCount.set(Number(users.rows[0].count));
 
         // Query library count
-        const libraries = await query('SELECT COUNT(*) FROM libraries');
-        libraryCount.set(libraries.rows[0].count);
+        const libraries = await query('SELECT COUNT(*)::int AS count FROM libraries');
+        libraryCount.set(Number(libraries.rows[0].count));
 
         // Query model count
-        const models = await query('SELECT COUNT(*) FROM models');
-        modelCount.set(models.rows[0].count);
+        const models = await query('SELECT COUNT(*)::int AS count FROM models');
+        modelCount.set(Number(models.rows[0].count));
 
         // Query file count
-        const files = await query('SELECT COUNT(*) FROM files');
-        fileCount.set(files.rows[0].count);
+        const files = await query('SELECT COUNT(*)::int AS count FROM model_files');
+        fileCount.set(Number(files.rows[0].count));
 
         // Query tag count
-        const tags = await query('SELECT COUNT(*) FROM tags');
-        tagCount.set(tags.rows[0].count);
+        const tags = await query('SELECT COUNT(*)::int AS count FROM tags');
+        tagCount.set(Number(tags.rows[0].count));
 
         // Query creator count
-        const creators = await query('SELECT COUNT(*) FROM creators');
-        creatorCount.set(creators.rows[0].count);
+        const creators = await query('SELECT COUNT(*)::int AS count FROM creators');
+        creatorCount.set(Number(creators.rows[0].count));
 
-        // Query model downloads
-        const downloads = await query('SELECT model_id, SUM(downloads) AS total_downloads FROM model_downloads GROUP BY model_id');
-        downloads.rows.forEach(row => modelDownloads.set({ model_id: row.model_id }, row.total_downloads));
-
-        // Query disk usage (assuming a table exists, otherwise replace with external disk check)
-        const diskUsages = await query('SELECT library_id, disk_space_used FROM library_usage');
-        diskUsages.rows.forEach(row => diskUsage.set({ library_id: row.library_id }, row.disk_space_used));
     } catch (error) {
         console.error('Error collecting metrics:', error);
     }
