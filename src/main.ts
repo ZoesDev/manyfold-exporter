@@ -1,96 +1,72 @@
 import express from 'express';
 import promClient from 'prom-client';
-import { Pool } from 'pg';
+import { query } from './db';
 import dotenv from 'dotenv';
-import * as fs from 'fs';
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Declare versionInfo variable
-let versionInfo: { version: string; commit: string; branch: string; buildDate: string };
+const app = express();
+const collectDefaultMetrics = promClient.collectDefaultMetrics;
+collectDefaultMetrics();
 
-// Get build info from the generated build-info.json
-try {
-  versionInfo = JSON.parse(fs.readFileSync('./build-info.json', 'utf8'));
-} catch (error) {
-  console.error('Error reading version info:', error);
-  versionInfo = {
-    version: 'unknown',
-    commit: 'unknown',
-    branch: 'unknown',
-    buildDate: 'unknown',
-  };
+// Define Prometheus metrics
+const userCount = new promClient.Gauge({ name: 'manyfold_user_count', help: 'Total number of users' });
+const libraryCount = new promClient.Gauge({ name: 'manyfold_library_count', help: 'Total number of libraries' });
+const modelCount = new promClient.Gauge({ name: 'manyfold_model_count', help: 'Total number of models' });
+const fileCount = new promClient.Gauge({ name: 'manyfold_file_count', help: 'Total number of files' });
+const tagCount = new promClient.Gauge({ name: 'manyfold_tag_count', help: 'Total number of tags' });
+const creatorCount = new promClient.Gauge({ name: 'manyfold_creator_count', help: 'Total number of creators' });
+const modelDownloads = new promClient.Gauge({ name: 'manyfold_model_downloads', help: 'Total downloads per model', labelNames: ['model_id'] });
+const diskUsage = new promClient.Gauge({ name: 'manyfold_library_disk_usage', help: 'Disk space used per library', labelNames: ['library_id'] });
+
+async function collectMetrics() {
+    try {
+        // Query user count
+        const users = await query('SELECT COUNT(*) FROM users');
+        userCount.set(users.rows[0].count);
+
+        // Query library count
+        const libraries = await query('SELECT COUNT(*) FROM libraries');
+        libraryCount.set(libraries.rows[0].count);
+
+        // Query model count
+        const models = await query('SELECT COUNT(*) FROM models');
+        modelCount.set(models.rows[0].count);
+
+        // Query file count
+        const files = await query('SELECT COUNT(*) FROM files');
+        fileCount.set(files.rows[0].count);
+
+        // Query tag count
+        const tags = await query('SELECT COUNT(*) FROM tags');
+        tagCount.set(tags.rows[0].count);
+
+        // Query creator count
+        const creators = await query('SELECT COUNT(*) FROM creators');
+        creatorCount.set(creators.rows[0].count);
+
+        // Query model downloads
+        const downloads = await query('SELECT model_id, SUM(downloads) AS total_downloads FROM model_downloads GROUP BY model_id');
+        downloads.rows.forEach(row => modelDownloads.set({ model_id: row.model_id }, row.total_downloads));
+
+        // Query disk usage (assuming a table exists, otherwise replace with external disk check)
+        const diskUsages = await query('SELECT library_id, disk_space_used FROM library_usage');
+        diskUsages.rows.forEach(row => diskUsage.set({ library_id: row.library_id }, row.disk_space_used));
+    } catch (error) {
+        console.error('Error collecting metrics:', error);
+    }
 }
 
-// Database connection (Assuming the use of a Pool)
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: Number(process.env.DB_PORT),
+// Collect metrics every 30 seconds
+setInterval(collectMetrics, 30000);
+
+// Expose metrics endpoint
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', promClient.register.contentType);
+    res.end(await promClient.register.metrics());
 });
 
-// Function to test database connection
-async function connectToDatabase() {
-  try {
-    const client = await pool.connect();
-    console.log('Connected to PostgreSQL database!');
-    client.release(); // Release client back to the pool
-  } catch (err) {
-    console.error('Error connecting to database:', err);
-  }
-}
-
-connectToDatabase();
-
-// Prometheus setup
-promClient.collectDefaultMetrics();
-
-// Define version gauge for Prometheus
-const versionGauge = new promClient.Gauge({
-  name: 'app_version_info',
-  help: 'Application version information',
-  labelNames: ['version', 'commit', 'branch', 'build_date'],
+app.listen(3000, () => {
+    console.log('Metrics server running on port 3000');
 });
-
-// Set the version info in the gauge
-versionGauge.set({
-  version: versionInfo.version,
-  commit: versionInfo.commit,
-  branch: versionInfo.branch,
-  build_date: versionInfo.buildDate,
-}, 1);
-
-// Express setup
-const metricServer = express();
-
-// /metrics endpoint
-metricServer.get('/metrics', async (req, res) => {
-  res.send(await promClient.register.metrics());
-});
-
-// Root endpoint showing version info
-metricServer.get('/', (req, res) => {
-  console.log('metrics homepage');
-  res.send(`
-    <header style='background-color: #ED72D7; color: #000; font-size: 1rem; padding: 1rem;'>
-      <h1>Manyfold Exporter</h1>
-    </header>
-    <main style='padding: 1rem;'>
-      <h2>Manyfold Metric Exporter</h2>
-      <div>Version: ${versionInfo.version}</div>
-      <div>Commit: ${versionInfo.commit}</div>
-      <div>Branch: ${versionInfo.branch}</div>
-      <div>Build Date: ${versionInfo.buildDate}</div>
-      <div><a href='/metrics'>/metrics</a></div>
-    </main>
-  `);
-});
-
-// Start the server
-const port = Number(process.env.SERVER_PORT) || 3000;
-metricServer.listen(port, () =>
-  console.log(`🚨 Prometheus listening on port ${port} /metrics`)
-);
